@@ -16,6 +16,7 @@ import com.ahmadov.koincrypto.databinding.FragmentListBinding
 import com.ahmadov.koincrypto.model.Crypto
 import com.ahmadov.koincrypto.service.CryptoApi
 import kotlinx.coroutines.*
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -24,7 +25,7 @@ class ListFragment : Fragment(),RecyclerViewAdapter.Listener {
     private var _binding: FragmentListBinding? = null
     private val binding get() = _binding!!
     private var adapter=RecyclerViewAdapter(arrayListOf(),this)
-    private lateinit var viewModel:CryptoViewModel
+    private val viewModel by viewModel<CryptoViewModel>()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +46,7 @@ class ListFragment : Fragment(),RecyclerViewAdapter.Listener {
         super.onViewCreated(view, savedInstanceState)
         val layoutManager=LinearLayoutManager(requireContext())
         binding.recyclerView.layoutManager=layoutManager
-        viewModel= ViewModelProvider(this)[CryptoViewModel::class.java]
+        //viewModel= ViewModelProvider(this)[CryptoViewModel::class.java]
         viewModel.getDataFromApi()
         observeLiveData()
 
@@ -54,13 +55,13 @@ class ListFragment : Fragment(),RecyclerViewAdapter.Listener {
         viewModel.cryptoList.observe(viewLifecycleOwner, Observer {cryptos->
             cryptos?.let{
                 binding.recyclerView.visibility=View.VISIBLE
-                adapter=RecyclerViewAdapter(ArrayList(it),this@ListFragment)
+                adapter=RecyclerViewAdapter(ArrayList(it.data?: arrayListOf()),this@ListFragment)
                 binding.recyclerView.adapter=adapter
             }
         })
         viewModel.cryptoError.observe(viewLifecycleOwner, Observer {
             it?.let {
-                if(it){
+                if(it.data==true){
                     binding.cryptoError.visibility=View.VISIBLE
                     binding.cryptoProgressBar.visibility=View.GONE
                     binding.recyclerView.visibility=View.GONE
@@ -69,9 +70,9 @@ class ListFragment : Fragment(),RecyclerViewAdapter.Listener {
                 }
             }
         })
-        viewModel.crptoLoading.observe(viewLifecycleOwner, Observer {
+        viewModel.cryptoLoading.observe(viewLifecycleOwner, Observer {
             it?.let {
-                if(it){
+                if(it.data==true){
                     binding.cryptoProgressBar.visibility=View.VISIBLE
                     binding.cryptoError.visibility=View.GONE
                     binding.recyclerView.visibility=View.GONE

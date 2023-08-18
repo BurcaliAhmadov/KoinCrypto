@@ -2,27 +2,38 @@ package com.ahmadov.koincrypto.ViewModel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.ahmadov.koincrypto.model.Crypto
-import com.ahmadov.koincrypto.service.CryptoApi
-import com.ahmadov.koincrypto.view.RecyclerViewAdapter
+import com.ahmadov.koincrypto.repository.CryptoDownload
+import com.ahmadov.koincrypto.util.Resource
 import kotlinx.coroutines.*
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
-class CryptoViewModel :ViewModel() {
+class CryptoViewModel(private val cryptoDownloadRepository : CryptoDownload) :ViewModel() {
 
-    val cryptoList=MutableLiveData<List<Crypto>>()
-    val cryptoError=MutableLiveData<Boolean>()
-    val crptoLoading=MutableLiveData<Boolean>()
+    val cryptoList=MutableLiveData<Resource<List<Crypto>>>()
+    val cryptoError=MutableLiveData<Resource<Boolean>>()
+    val cryptoLoading=MutableLiveData<Resource<Boolean>>()
 
     private var job: Job?=null
     val exceptionHandler= CoroutineExceptionHandler { coroutineContext, throwable ->
         println("Error ${throwable.localizedMessage}")
-        cryptoError.value=true
+        cryptoError.value=Resource.error(throwable.localizedMessage?:"Error",true)
     }
 
     fun getDataFromApi(){
+        cryptoLoading.value=Resource.loading(true)
+
+        job=CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
+            val resource=cryptoDownloadRepository.downloadCryptos()
+            withContext(Dispatchers.Main){
+                resource.data?.let {
+                    cryptoList.value=resource
+                    cryptoLoading.value=Resource.loading(false)
+                    cryptoError.value=Resource.error("",false)
+                }
+            }
+
+        }
+        /*
         crptoLoading.value=true
 
         val BASE_URL="https://raw.githubusercontent.com/"
@@ -30,7 +41,7 @@ class CryptoViewModel :ViewModel() {
             .addConverterFactory(GsonConverterFactory.create())
             .build().create(CryptoApi::class.java)
 
-/*
+
 
          viewModelScope CoroutineScope yerine istifade edile biler ferqi yoxdu
          Job yaradib  OnClearda job.cancal demek olar
@@ -39,7 +50,7 @@ class CryptoViewModel :ViewModel() {
 
         }
 
- */
+
 
         job= CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
             val response=retrofit.getData()
@@ -56,6 +67,8 @@ class CryptoViewModel :ViewModel() {
                 }
             }
         }
+
+         */
     }
 
     override fun onCleared() {
